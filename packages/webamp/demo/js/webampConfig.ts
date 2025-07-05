@@ -128,9 +128,8 @@ export async function getWebampConfig(
       // @ts-ignore
       import(/* webpackChunkName: "jszip" */ "jszip/dist/jszip"),
     requireMusicMetadata: () =>
-      import(
-        /* webpackChunkName: "music-metadata-browser" */ "music-metadata-browser/dist/index"
-      ),
+      // @ts-ignore
+      import(/* webpackChunkName: "music-metadata" */ "music-metadata"),
     __initialState: screenshot ? screenshotInitialState : initialState,
     __butterchurnOptions,
     __customMiddlewares: [sentryMiddleware, loggerMiddleware],

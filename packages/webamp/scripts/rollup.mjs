@@ -44,6 +44,9 @@ const BUNDLES = [
       file: "built/webamp.bundle.js",
       format: "umd",
       name: "Webamp",
+      // music-metadata uses dynamic imports, so we need to inline them
+      // to avoid issues with the UMD build.
+      inlineDynamicImports: true,
     },
   },
   {
@@ -54,6 +57,9 @@ const BUNDLES = [
       file: "built/webamp.bundle.min.js",
       format: "umd",
       name: "Webamp",
+      // music-metadata uses dynamic imports, so we need to inline them
+      // to avoid issues with the UMD build.
+      inlineDynamicImports: true,
     },
   },
   {
@@ -63,6 +69,21 @@ const BUNDLES = [
     output: {
       file: "built/webamp.bundle.min.mjs",
       format: "module",
+      // music-metadata uses dynamic imports, so we need to inline them
+      // to avoid issues with the UMD build.
+      inlineDynamicImports: true,
+    },
+  },
+  {
+    name: "Webamp Butterchurn ES",
+    input: "js/webampWithButterchurn.ts",
+    minify: true,
+    output: {
+      file: "built/webamp.butterchurn-bundle.min.mjs",
+      format: "module",
+      // music-metadata uses dynamic imports, so we need to inline them
+      // to avoid issues with the UMD build.
+      inlineDynamicImports: true,
     },
   },
 ];
@@ -76,7 +97,28 @@ async function build() {
       outputFile: bundleDesc.output.file,
       minify: bundleDesc.minify,
     });
-    const bundle = await rollup({ input: bundleDesc.input, plugins });
+    const bundle = await rollup({
+      input: bundleDesc.input,
+      plugins,
+      onwarn: (warning, warn) => {
+        // Suppress expected circular dependency warnings from external libraries
+        if (warning.code === "CIRCULAR_DEPENDENCY") {
+          const message = warning.message || "";
+          // Skip warnings for known external library circular dependencies
+          if (
+            message.includes("polyfill-node") ||
+            message.includes("readable-stream") ||
+            message.includes("jszip") ||
+            message.includes("music-metadata") ||
+            message.includes("node_modules")
+          ) {
+            return; // Don't show these warnings
+          }
+        }
+        // Show all other warnings
+        warn(warning);
+      },
+    });
     await bundle.write({
       sourcemap: true,
       ...bundleDesc.output,

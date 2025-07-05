@@ -6,7 +6,7 @@ import commonjs from "@rollup/plugin-commonjs";
 import terser from "@rollup/plugin-terser";
 import { visualizer } from "rollup-plugin-visualizer";
 import replace from "@rollup/plugin-replace";
-import postcssOptimizeDataUriPngs from "./postcss-optimize-data-uri-pngs.js";
+import postcssOptimizeDataUriPngs from "./postcss-optimize-data-uri-pngs.mjs";
 import atImport from "postcss-import";
 import { babel } from "@rollup/plugin-babel";
 import nodePolyfills from "rollup-plugin-polyfill-node";
@@ -26,16 +26,17 @@ export function getPlugins({ minify, outputFile, vite }) {
     // Needed for music-metadata-browser in the Webamp bundle which depends upon
     // being able to use some polyfillable node APIs
     nodePolyfills(),
-    typescript({
-      compilerOptions: {
-        jsx: "react-jsx",
-        module: "esnext",
-        declarationDir: vite ? "dist/demo-site/declarations" : undefined,
-        // Without this it complains that files will be overwritten, but I don't
-        // think this ever gets used...
-        outDir: vite ? undefined : "./tsBuilt",
-      },
-    }),
+    // Vite handles TypeScript natively, so only use the plugin for Rollup builds
+    vite
+      ? null
+      : typescript({
+          compilerOptions: {
+            jsx: "react-jsx",
+            module: "esnext",
+            declarationDir: "dist/demo-site/declarations",
+            outDir: "./tsBuilt",
+          },
+        }),
     // Enable importing .json files. But Vite already enables this, so enabling it there
     // causes it to try to parse the js version as JSON.
     vite ? null : json(),
@@ -50,7 +51,7 @@ export function getPlugins({ minify, outputFile, vite }) {
     // because react-redux import react as if it were an es6 module, but it is not.
     commonjs(),
     // Must come after commonjs
-    babel({ babelHelpers: "bundled" }),
+    babel({ babelHelpers: "bundled", compact: minify }),
     minify ? terser() : null,
     // Generate a report so we can see how our bundle size is spent
     visualizer({ filename: `./${outputFile}.html` }),
